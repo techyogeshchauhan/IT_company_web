@@ -17,6 +17,12 @@
       bookmarks: "india-directory-bookmarks",
       recent: "india-directory-recent",
       theme: "india-directory-theme",
+      cache: "india-directory-cache",
+      cacheVersion: "india-directory-cache-version",
+    },
+    cacheConfig: {
+      version: "v1.0", // Increment this when data structure changes
+      expiryDays: 7, // Cache expires after 7 days
     },
   };
 
@@ -29,13 +35,118 @@
     setupBackToTop();
 
     try {
-      const response = await fetch("companies.json", { cache: "no-store" });
-      if (!response.ok) throw new Error("companies.json could not be loaded");
-      app.companies = (await response.json()).map(normalizeCompany);
-      routePage();
+      // Try to load from cache first
+      const cachedData = loadFromCache();
+      
+      if (cachedData) {
+        console.log("✅ Loading from cache (instant load)");
+        app.companies = cachedData.map(normalizeCompany);
+        routePage();
+        
+        // Fetch fresh data in background and update cache
+        fetchAndUpdateCache();
+      } else {
+        console.log("📥 Loading from server (first time)");
+        await fetchAndLoadData();
+      }
     } catch (error) {
       renderLoadError(error);
     }
+  }
+
+  async function fetchAndLoadData() {
+    const response = await fetch("companies.json", { 
+      cache: "no-store",
+      headers: {
+        'Accept-Encoding': 'gzip, deflate, br'
+      }
+    });
+    if (!response.ok) throw new Error("companies.json could not be loaded");
+    
+    const data = await response.json();
+    app.companies = data.map(normalizeCompany);
+    
+    // Save to cache for next time
+    saveToCache(data);
+    
+    routePage();
+  }
+
+  async function fetchAndUpdateCache() {
+    try {
+      const response = await fetch("companies.json", { 
+        cache: "no-store",
+        headers: {
+          'Accept-Encoding': 'gzip, deflate, br'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        saveToCache(data);
+        console.log("🔄 Cache updated in background");
+      }
+    } catch (error) {
+      console.warn("Background cache update failed:", error);
+    }
+  }
+
+  function saveToCache(data) {
+    try {
+      const cacheData = {
+        version: app.cacheConfig.version,
+        timestamp: Date.now(),
+        data: data,
+      };
+      localStorage.setItem(app.storage.cache, JSON.stringify(cacheData));
+      localStorage.setItem(app.storage.cacheVersion, app.cacheConfig.version);
+      console.log("💾 Data cached successfully");
+    } catch (error) {
+      console.warn("Failed to cache data:", error);
+      // If localStorage is full, clear old cache
+      if (error.name === 'QuotaExceededError') {
+        clearCache();
+      }
+    }
+  }
+
+  function loadFromCache() {
+    try {
+      const cachedVersion = localStorage.getItem(app.storage.cacheVersion);
+      
+      // Check if cache version matches
+      if (cachedVersion !== app.cacheConfig.version) {
+        console.log("🔄 Cache version mismatch, clearing old cache");
+        clearCache();
+        return null;
+      }
+
+      const cached = localStorage.getItem(app.storage.cache);
+      if (!cached) return null;
+
+      const cacheData = JSON.parse(cached);
+      
+      // Check if cache is expired
+      const cacheAge = Date.now() - cacheData.timestamp;
+      const maxAge = app.cacheConfig.expiryDays * 24 * 60 * 60 * 1000;
+      
+      if (cacheAge > maxAge) {
+        console.log("⏰ Cache expired, fetching fresh data");
+        clearCache();
+        return null;
+      }
+
+      return cacheData.data;
+    } catch (error) {
+      console.warn("Failed to load from cache:", error);
+      clearCache();
+      return null;
+    }
+  }
+
+  function clearCache() {
+    localStorage.removeItem(app.storage.cache);
+    localStorage.removeItem(app.storage.cacheVersion);
+    console.log("🗑️ Cache cleared");
   }
 
 

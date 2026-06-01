@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Test - India IT Directory</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-section h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .metric:last-child {
+            border-bottom: none;
+        }
+        .metric-label {
+            color: #666;
+            font-size: 14px;
+        }
+        .metric-value {
+            color: #333;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button.danger {
+            background: #dc3545;
+        }
+        button.danger:hover {
+            background: #c82333;
+        }
+        .icon {
+            font-size: 24px;
+        }
+        .actions {
+            margin-top: 20px;
+        }
+        .info {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Performance Test Dashboard</h1>
+        <p class="subtitle">India IT Companies Directory - Optimization Status</p>
+
+        <!-- LocalStorage Cache -->
+        <div class="test-section">
+            <h2>
+                <span class="icon">💾</span>
+                LocalStorage Cache
+                <span class="status pending" id="cacheStatus">Checking...</span>
+            </h2>
+            <div class="metric">
+                <span class="metric-label">Cache Status</span>
+                <span class="metric-value" id="cacheExists">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Cache Size</span>
+                <span class="metric-value" id="cacheSize">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Cache Age</span>
+                <span class="metric-value" id="cacheAge">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Cache Version</span>
+                <span class="metric-value" id="cacheVersion">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Companies Cached</span>
+                <span class="metric-value" id="companiesCount">-</span>
+            </div>
+        </div>
+
+        <!-- Service Worker -->
+        <div class="test-section">
+            <h2>
+                <span class="icon">⚙️</span>
+                Service Worker
+                <span class="status pending" id="swStatus">Checking...</span>
+            </h2>
+            <div class="metric">
+                <span class="metric-label">Registration Status</span>
+                <span class="metric-value" id="swRegistered">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Active Worker</span>
+                <span class="metric-value" id="swActive">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Scope</span>
+                <span class="metric-value" id="swScope">-</span>
+            </div>
+        </div>
+
+        <!-- Browser Support -->
+        <div class="test-section">
+            <h2>
+                <span class="icon">🌐</span>
+                Browser Support
+                <span class="status success">Compatible</span>
+            </h2>
+            <div class="metric">
+                <span class="metric-label">LocalStorage</span>
+                <span class="metric-value" id="localStorageSupport">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Service Worker</span>
+                <span class="metric-value" id="swSupport">-</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Cache API</span>
+                <span class="metric-value" id="cacheApiSupport">-</span>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+            <button onclick="testLoad()">🧪 Test Load Speed</button>
+            <button onclick="clearAllCache()" class="danger">🗑️ Clear All Cache</button>
+            <button onclick="location.reload()">🔄 Refresh</button>
+        </div>
+
+        <div class="info">
+            <strong>💡 Tip:</strong> First visit will download data. Reload the page to see instant loading from cache!
+        </div>
+    </div>
+
+    <script>
+        // Check LocalStorage Cache
+        function checkCache() {
+            const cache = localStorage.getItem('india-directory-cache');
+            const version = localStorage.getItem('india-directory-cache-version');
+            
+            if (cache) {
+                try {
+                    const cacheData = JSON.parse(cache);
+                    const cacheAge = Date.now() - cacheData.timestamp;
+                    const ageInHours = Math.floor(cacheAge / (1000 * 60 * 60));
+                    const ageInDays = Math.floor(ageInHours / 24);
+                    
+                    document.getElementById('cacheStatus').textContent = 'Active';
+                    document.getElementById('cacheStatus').className = 'status success';
+                    document.getElementById('cacheExists').textContent = '✅ Cached';
+                    document.getElementById('cacheSize').textContent = (cache.length / 1024 / 1024).toFixed(2) + ' MB';
+                    document.getElementById('cacheAge').textContent = ageInDays > 0 ? `${ageInDays} days` : `${ageInHours} hours`;
+                    document.getElementById('cacheVersion').textContent = version || 'v1.0';
+                    document.getElementById('companiesCount').textContent = cacheData.data?.length || 0;
+                } catch (e) {
+                    document.getElementById('cacheStatus').textContent = 'Error';
+                    document.getElementById('cacheStatus').className = 'status error';
+                    document.getElementById('cacheExists').textContent = '❌ Invalid';
+                }
+            } else {
+                document.getElementById('cacheStatus').textContent = 'Empty';
+                document.getElementById('cacheStatus').className = 'status error';
+                document.getElementById('cacheExists').textContent = '❌ No cache';
+                document.getElementById('cacheSize').textContent = '0 MB';
+                document.getElementById('cacheAge').textContent = 'Never';
+                document.getElementById('cacheVersion').textContent = 'None';
+                document.getElementById('companiesCount').textContent = '0';
+            }
+        }
+
+        // Check Service Worker
+        async function checkServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    if (registration) {
+                        document.getElementById('swStatus').textContent = 'Active';
+                        document.getElementById('swStatus').className = 'status success';
+                        document.getElementById('swRegistered').textContent = '✅ Registered';
+                        document.getElementById('swActive').textContent = registration.active ? '✅ Active' : '⏳ Installing';
+                        document.getElementById('swScope').textContent = registration.scope;
+                    } else {
+                        document.getElementById('swStatus').textContent = 'Not Registered';
+                        document.getElementById('swStatus').className = 'status error';
+                        document.getElementById('swRegistered').textContent = '❌ Not registered';
+                        document.getElementById('swActive').textContent = 'N/A';
+                        document.getElementById('swScope').textContent = 'N/A';
+                    }
+                } catch (e) {
+                    document.getElementById('swStatus').textContent = 'Error';
+                    document.getElementById('swStatus').className = 'status error';
+                }
+            } else {
+                document.getElementById('swStatus').textContent = 'Not Supported';
+                document.getElementById('swStatus').className = 'status error';
+                document.getElementById('swRegistered').textContent = '❌ Not supported';
+            }
+        }
+
+        // Check Browser Support
+        function checkBrowserSupport() {
+            document.getElementById('localStorageSupport').textContent = 
+                typeof(Storage) !== 'undefined' ? '✅ Supported' : '❌ Not supported';
+            
+            document.getElementById('swSupport').textContent = 
+                'serviceWorker' in navigator ? '✅ Supported' : '❌ Not supported';
+            
+            document.getElementById('cacheApiSupport').textContent = 
+                'caches' in window ? '✅ Supported' : '❌ Not supported';
+        }
+
+        // Test Load Speed
+        async function testLoad() {
+            const startTime = performance.now();
+            try {
+                const response = await fetch('companies.json');
+                const data = await response.json();
+                const endTime = performance.now();
+                const loadTime = (endTime - startTime).toFixed(2);
+                alert(`✅ Load Test Complete!\n\nTime: ${loadTime}ms\nCompanies: ${data.length}\nSize: ${(JSON.stringify(data).length / 1024 / 1024).toFixed(2)} MB`);
+            } catch (e) {
+                alert('❌ Load test failed: ' + e.message);
+            }
+        }
+
+        // Clear All Cache
+        async function clearAllCache() {
+            if (confirm('Are you sure you want to clear all cache? This will remove cached data and service worker.')) {
+                // Clear LocalStorage
+                localStorage.removeItem('india-directory-cache');
+                localStorage.removeItem('india-directory-cache-version');
+                
+                // Clear Service Worker caches
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                }
+                
+                // Unregister Service Worker
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(registrations.map(reg => reg.unregister()));
+                }
+                
+                alert('✅ All cache cleared! Reload the page to start fresh.');
+                location.reload();
+            }
+        }
+
+        // Run checks on load
+        window.addEventListener('load', () => {
+            checkCache();
+            checkServiceWorker();
+            checkBrowserSupport();
+        });
+    </script>
+</body>
+</html>
