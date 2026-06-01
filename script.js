@@ -37,6 +37,7 @@
     }
   }
 
+
   function bindShell() {
     const savedTheme = localStorage.getItem(app.storage.theme);
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
