@@ -26,6 +26,7 @@
     document.body.classList.add("app-ready");
     bindShell();
     setupRevealAnimations();
+    setupBackToTop();
 
     try {
       const response = await fetch("companies.json", { cache: "no-store" });
@@ -52,26 +53,223 @@
         localStorage.setItem(app.storage.theme, isDark ? "dark" : "light");
         updateThemeIcons();
         if (app.page === "dashboard") renderDashboardCharts();
+        showToast(isDark ? "Dark mode enabled" : "Light mode enabled", "info");
       });
     });
 
+    // Hamburger nav toggle with animation
     const navToggle = document.querySelector("[data-nav-toggle]");
     const navMenu = document.querySelector("[data-nav-menu]");
-    navToggle?.addEventListener("click", () => navMenu?.classList.toggle("open"));
+    navToggle?.addEventListener("click", () => {
+      const isOpen = navMenu?.classList.toggle("open");
+      navToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      navToggle.innerHTML = isOpen
+        ? `<i class="fa-solid fa-xmark" aria-hidden="true"></i>`
+        : `<i class="fa-solid fa-bars" aria-hidden="true"></i>`;
+    });
+
+    // Close nav on click outside
+    document.addEventListener("click", (event) => {
+      if (navMenu?.classList.contains("open") &&
+          !navMenu.contains(event.target) &&
+          !navToggle?.contains(event.target)) {
+        navMenu.classList.remove("open");
+        navToggle?.setAttribute("aria-expanded", "false");
+        if (navToggle) navToggle.innerHTML = `<i class="fa-solid fa-bars" aria-hidden="true"></i>`;
+      }
+    });
+
+    // Close nav on nav item click (mobile)
+    navMenu?.querySelectorAll(".nav-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        if (window.innerWidth < 768) {
+          navMenu.classList.remove("open");
+          navToggle?.setAttribute("aria-expanded", "false");
+          if (navToggle) navToggle.innerHTML = `<i class="fa-solid fa-bars" aria-hidden="true"></i>`;
+        }
+      });
+    });
 
     document.getElementById("companyModal")?.addEventListener("click", (event) => {
       if (event.target.closest("[data-close-modal]")) closeModal();
     });
 
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closeModal();
+      if (event.key === "Escape") {
+        closeModal();
+        closeFilterDrawer();
+        if (navMenu?.classList.contains("open")) {
+          navMenu.classList.remove("open");
+          navToggle?.setAttribute("aria-expanded", "false");
+          if (navToggle) navToggle.innerHTML = `<i class="fa-solid fa-bars" aria-hidden="true"></i>`;
+        }
+      }
+    });
+
+    // Mobile filter drawer bindings (companies page)
+    setupFilterDrawer();
+  }
+
+  function setupBackToTop() {
+    const btn = byId("backToTop");
+    if (!btn) return;
+    window.addEventListener("scroll", () => {
+      btn.classList.toggle("visible", window.scrollY > 400);
+    }, { passive: true });
+    btn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
     });
   }
+
+  /* ── Toast Notification System ── */
+  function showToast(message, type = "info") {
+    const container = byId("toastContainer");
+    if (!container) return;
+    const icons = {
+      success: "fa-circle-check",
+      error:   "fa-circle-xmark",
+      warning: "fa-triangle-exclamation",
+      info:    "fa-circle-info",
+    };
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.setAttribute("role", "alert");
+    toast.innerHTML = `
+      <i class="toast-icon fa-solid ${icons[type] || icons.info}" aria-hidden="true"></i>
+      <span class="toast-msg">${escapeHtml(message)}</span>
+      <button class="toast-close" type="button" aria-label="Dismiss notification">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    `;
+    toast.querySelector(".toast-close").addEventListener("click", () => dismissToast(toast));
+    container.appendChild(toast);
+    setTimeout(() => dismissToast(toast), 3500);
+  }
+
+  function dismissToast(toast) {
+    if (!toast.parentNode) return;
+    toast.classList.add("removing");
+    toast.addEventListener("animationend", () => toast.remove(), { once: true });
+    setTimeout(() => toast.remove(), 400);
+  }
+
+  /* ── Mobile Filter Drawer ── */
+  function setupFilterDrawer() {
+    const fab = byId("filterFab");
+    const overlay = byId("filterDrawerOverlay");
+    const drawer = byId("mobileFilterDrawer");
+    const closeBtn = byId("filterDrawerClose");
+    const applyBtn = byId("applyDrawerFilters");
+    const drawerReset = byId("drawerResetFilters");
+    if (!fab || !drawer) return;
+
+    fab.addEventListener("click", openFilterDrawer);
+    overlay?.addEventListener("click", closeFilterDrawer);
+    closeBtn?.addEventListener("click", closeFilterDrawer);
+
+    applyBtn?.addEventListener("click", () => {
+      syncDrawerToMain();
+      closeFilterDrawer();
+      app.directory.page = 1;
+      applyDirectoryFilters();
+    });
+
+    drawerReset?.addEventListener("click", () => {
+      resetDirectoryFilters();
+      syncMainToDrawer();
+      closeFilterDrawer();
+    });
+
+    // Drawer field inputs — sync realtime for instant feel
+    const drawerFields = ["drawerCompanySearch", "drawerCityFilter", "drawerStateFilter",
+      "drawerDomainFilter", "drawerInternshipFilter", "drawerCategoryFilter", "drawerRatingFilter"];
+    drawerFields.forEach(id => {
+      byId(id)?.addEventListener("change", () => {});
+    });
+  }
+
+  function openFilterDrawer() {
+    const fab = byId("filterFab");
+    const overlay = byId("filterDrawerOverlay");
+    const drawer = byId("mobileFilterDrawer");
+    if (!drawer) return;
+    syncMainToDrawer();
+    overlay?.classList.add("open");
+    drawer.classList.add("open");
+    overlay?.removeAttribute("aria-hidden");
+    drawer.removeAttribute("aria-hidden");
+    fab?.setAttribute("aria-expanded", "true");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeFilterDrawer() {
+    const fab = byId("filterFab");
+    const overlay = byId("filterDrawerOverlay");
+    const drawer = byId("mobileFilterDrawer");
+    if (!drawer) return;
+    overlay?.classList.remove("open");
+    drawer.classList.remove("open");
+    overlay?.setAttribute("aria-hidden", "true");
+    drawer.setAttribute("aria-hidden", "true");
+    fab?.setAttribute("aria-expanded", "false");
+    document.body.style.overflow = "";
+  }
+
+  function syncMainToDrawer() {
+    const pairs = [
+      ["companySearch", "drawerCompanySearch"],
+      ["cityFilter", "drawerCityFilter"],
+      ["stateFilter", "drawerStateFilter"],
+      ["domainFilter", "drawerDomainFilter"],
+      ["internshipFilter", "drawerInternshipFilter"],
+      ["categoryFilter", "drawerCategoryFilter"],
+      ["ratingFilter", "drawerRatingFilter"],
+    ];
+    pairs.forEach(([mainId, drawerId]) => {
+      const mainEl = byId(mainId);
+      const drawerEl = byId(drawerId);
+      if (mainEl && drawerEl) drawerEl.value = mainEl.value;
+    });
+  }
+
+  function syncDrawerToMain() {
+    const pairs = [
+      ["companySearch", "drawerCompanySearch"],
+      ["cityFilter", "drawerCityFilter"],
+      ["stateFilter", "drawerStateFilter"],
+      ["domainFilter", "drawerDomainFilter"],
+      ["internshipFilter", "drawerInternshipFilter"],
+      ["categoryFilter", "drawerCategoryFilter"],
+      ["ratingFilter", "drawerRatingFilter"],
+    ];
+    pairs.forEach(([mainId, drawerId]) => {
+      const mainEl = byId(mainId);
+      const drawerEl = byId(drawerId);
+      if (mainEl && drawerEl) mainEl.value = drawerEl.value;
+    });
+  }
+
+  function updateFilterBadge() {
+    const countEl = byId("filterFabCount");
+    if (!countEl) return;
+    const activeCount = [
+      valueOf("companySearch"), valueOf("cityFilter"), valueOf("stateFilter"),
+      valueOf("domainFilter"), valueOf("internshipFilter"), valueOf("categoryFilter"), valueOf("ratingFilter")
+    ].filter(Boolean).length;
+    if (activeCount > 0) {
+      countEl.textContent = activeCount;
+      countEl.classList.remove("hidden");
+    } else {
+      countEl.classList.add("hidden");
+    }
+  }
+
+
 
   function updateThemeIcons() {
     const isDark = document.documentElement.classList.contains("dark");
     document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
-      button.innerHTML = `<i class="fa-solid ${isDark ? "fa-sun" : "fa-moon"}"></i>`;
+      button.innerHTML = `<i class="fa-solid ${isDark ? "fa-sun" : "fa-moon"}" aria-hidden="true"></i>`;
     });
   }
 
@@ -368,6 +566,7 @@
       if (value) chips.push([label, value]);
     });
     setHtml("activeFilters", chips.map(([label, value]) => `<span class="filter-chip"><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</span>`).join(""));
+    updateFilterBadge();
   }
 
   function renderDirectoryPagination() {
@@ -834,7 +1033,18 @@
   }
 
   function fillSelect(id, label, values) {
-    setHtml(id, [`<option value="">${escapeHtml(label)}</option>`, ...values.map((value) => `<option value="${escapeAttr(value)}">${escapeHtml(value)}</option>`)].join(""));
+    const html = [`<option value="">${escapeHtml(label)}</option>`,
+      ...values.map((value) => `<option value="${escapeAttr(value)}">${escapeHtml(value)}</option>`)].join("");
+    setHtml(id, html);
+    // Also populate drawer counterpart if it exists
+    const drawerMap = {
+      cityFilter: "drawerCityFilter",
+      stateFilter: "drawerStateFilter",
+      domainFilter: "drawerDomainFilter",
+      categoryFilter: "drawerCategoryFilter",
+    };
+    const drawerId = drawerMap[id];
+    if (drawerId) setHtml(drawerId, html);
   }
 
   function isContactReady(company) {
@@ -855,9 +1065,13 @@
 
   function toggleBookmark(id) {
     const bookmarks = new Set(getBookmarks());
-    if (bookmarks.has(id)) bookmarks.delete(id);
+    const wasBookmarked = bookmarks.has(id);
+    if (wasBookmarked) bookmarks.delete(id);
     else bookmarks.add(id);
     localStorage.setItem(app.storage.bookmarks, JSON.stringify([...bookmarks]));
+    const company = findCompany(id);
+    const name = company?.companyName || "Company";
+    showToast(wasBookmarked ? `Removed "${name}" from bookmarks` : `Bookmarked "${name}"`, wasBookmarked ? "warning" : "success");
   }
 
   function updateBookmarkButtons() {
